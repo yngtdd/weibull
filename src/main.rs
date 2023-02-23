@@ -4,20 +4,21 @@ extern crate test;
 use statrs::distribution::Weibull;
 use statrs::distribution::ContinuousCDF;
 
+#[derive(Debug)]
 struct WeibullModel {
     shape: f64,
     scale: f64,
-    cdf: Vec<f64>,
+    reliability: Vec<f64>,
 }
 
 impl WeibullModel {
     fn new(shape: f64, scale: f64) -> Self {
-        let cdf = cdf_over_time(shape, scale, 1_000_000);
-        Self { shape, scale, cdf }
+        let reliability = reliability_over_time(shape, scale, 720);
+        Self { shape, scale, reliability }
     }
 }
 
-fn cdf_over_time(shape: f64, scale: f64, steps: u32) -> Vec<f64> {
+fn reliability_over_time(shape: f64, scale: f64, steps: u32) -> Vec<f64> {
     let weibull = Weibull::new(shape, scale).unwrap();
 
     let mut cdf: Vec<f64> = Vec::new();
@@ -26,13 +27,15 @@ fn cdf_over_time(shape: f64, scale: f64, steps: u32) -> Vec<f64> {
         cdf.push(val);
     }
 
-    cdf
+    let reliability: Vec<f64> = cdf.iter().map(|&x| 1.0 - x).collect();
+
+    reliability
 }
 
 fn build_components(num_components: u32) -> Vec<WeibullModel> {
     let mut components: Vec<_> = Vec::new();
     for _ in 0..num_components {
-        let component = WeibullModel::new(0.5, 1.0);
+        let component = WeibullModel::new(0.5, 200.0);
         components.push(component);
     }
 
@@ -40,7 +43,9 @@ fn build_components(num_components: u32) -> Vec<WeibullModel> {
 }
 
 fn main() {
-    let _models = build_components(10_000);
+    let models = build_components(500_000);
+    let last = models.last();
+    println!("Final model: {:?}", last);
 }
 
 #[cfg(test)]
